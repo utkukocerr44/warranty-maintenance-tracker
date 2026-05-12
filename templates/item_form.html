@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="form-panel">
+    <h1>{{ action }} Item</h1>
+    <form method="post">
+        <label for="name">Item Name</label>
+        <input id="name" name="name" value="{{ item.name if item else '' }}" required>
+
+        <label for="category">Category</label>
+        <input id="category" name="category" value="{{ item.category if item else '' }}" required>
+
+        <label for="purchase_date">Purchase Date</label>
+        <input id="purchase_date" name="purchase_date" type="date" value="{{ item.purchase_date if item else '' }}" required>
+
+        <label for="warranty_end_date">Warranty End Date</label>
+        <input id="warranty_end_date" name="warranty_end_date" type="date" value="{{ item.warranty_end_date if item else '' }}" required>
+
+        <label for="maintenance_date">Next Maintenance Date</label>
+        <input id="maintenance_date" name="maintenance_date" type="date" value="{{ item.maintenance_date if item else '' }}">
+
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="4">{{ item.notes if item else '' }}</textarea>
+
+        <div class="form-actions">
+            <button type="submit">{{ action }} Item</button>
+            <a href="{{ url_for('index') }}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

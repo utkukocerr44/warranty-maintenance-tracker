@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="dashboard-header">
+    <div>
+        <p class="eyebrow">Dashboard</p>
+        <h1>Your Warranty Items</h1>
+    </div>
+    <a class="primary-action" href="{{ url_for('create_item') }}">Add Item</a>
+</section>
+
+<section class="stats-grid">
+    <div class="stat"><span>{{ counts["Active"] }}</span>Active</div>
+    <div class="stat warning"><span>{{ counts["Expiring Soon"] }}</span>Expiring Soon</div>
+    <div class="stat danger"><span>{{ counts["Expired"] }}</span>Expired</div>
+    <div class="stat service"><span>{{ counts["Maintenance Due"] }}</span>Maintenance Due</div>
+</section>
+
+{% if items %}
+    <section class="item-list">
+        {% for item in items %}
+            <article class="item-card">
+                <div class="item-main">
+                    <div>
+                        <p class="category">{{ item.category }}</p>
+                        <h2>{{ item.name }}</h2>
+                    </div>
+                    <span class="status {{ item.status|lower|replace(' ', '-') }}">{{ item.status }}</span>
+                </div>
+                <dl>
+                    <div>
+                        <dt>Purchased</dt>
+                        <dd>{{ item.purchase_date }}</dd>
+                    </div>
+                    <div>
+                        <dt>Warranty Ends</dt>
+                        <dd>{{ item.warranty_end_date }}</dd>
+                    </div>
+                    <div>
+                        <dt>Maintenance</dt>
+                        <dd>{{ item.maintenance_date or "Not set" }}</dd>
+                    </div>
+                </dl>
+                {% if item.notes %}
+                    <p class="notes">{{ item.notes }}</p>
+                {% endif %}
+                <div class="item-actions">
+                    <a href="{{ url_for('edit_item', item_id=item.id) }}">Edit</a>
+                    <form method="post" action="{{ url_for('delete_item', item_id=item.id) }}">
+                        <button class="danger-button" type="submit">Delete</button>
+                    </form>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="empty-state">
+        <h2>No items yet</h2>
+        <p>Add your first product to start tracking warranty and maintenance dates.</p>
+    </section>
+{% endif %}
+{% endblock %}
