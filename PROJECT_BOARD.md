@@ -73,3 +73,13 @@ Acceptance criteria:
 - Register, login, and logout routes
 - Raw SQL CRUD routes for warranty items
 - Unit tests for business logic functions
+
+## Implementation Mapping
+
+| Story | Main implementation |
+| --- | --- |
+| `[US1]` | `create_item()` route in `app.py`, `item_form.html`, item validation in `logic.py` |
+| `[US2]` | `index()` dashboard route in `app.py`, dashboard filters with query parameters |
+| `[US3]` | `edit_item()` route in `app.py` |
+| `[US4]` | `delete_item()` route in `app.py`, delete confirmation in `dashboard.html` |
+| `[US5]` | Warranty status, maintenance status, category limits, and unit tests in `logic.py` and `tests/test_logic.py` |
