@@ -56,3 +56,12 @@ Example accounts used during local testing:
 - User-specific data is enforced with `user_id` in the `items` table.
 - Passwords are stored with Werkzeug password hashing instead of plain text.
 - Business logic is kept in `logic.py` so it can be tested without testing routes.
+
+## Business Rules
+
+- Usernames must be unique.
+- Passwords must be at least 6 characters.
+- Purchase date cannot be in the future.
+- Warranty end date cannot be before the purchase date.
+- Warranty and maintenance dates are limited by product category.
+- Maintenance Due has priority over the normal warranty status.
