@@ -47,3 +47,10 @@ python -m unittest discover -s tests
 ```
 
 Explain that the tests cover business logic functions, not routes.
+
+## 7. GitHub Process
+
+- Open the GitHub repository and show the commit messages with user story IDs.
+- Open the GitHub Projects Kanban board.
+- Show that each user story has acceptance criteria.
+- Show that completed user stories are in the Done column.
