@@ -140,12 +140,19 @@ label {
 }
 
 input,
+select,
 textarea {
     border: 1px solid var(--line);
     border-radius: 6px;
     font: inherit;
     padding: 11px 12px;
     width: 100%;
+}
+
+.field-help {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin: -4px 0 4px;
 }
 
 .dashboard-header {
@@ -165,6 +172,24 @@ textarea {
     gap: 12px;
     grid-template-columns: repeat(4, 1fr);
     margin-bottom: 22px;
+}
+
+.filter-bar {
+    align-items: end;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1.4fr 1fr 1fr auto;
+    margin-bottom: 22px;
+    padding: 16px;
+}
+
+.filter-actions {
+    align-items: center;
+    display: flex;
+    gap: 12px;
 }
 
 .stat {
@@ -295,6 +320,7 @@ dd {
     }
 
     .stats-grid,
+    .filter-bar,
     dl {
         grid-template-columns: 1fr;
     }

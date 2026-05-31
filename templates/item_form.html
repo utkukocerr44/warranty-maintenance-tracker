@@ -8,16 +8,23 @@
         <input id="name" name="name" value="{{ item.name if item else '' }}" required>
 
         <label for="category">Category</label>
-        <input id="category" name="category" value="{{ item.category if item else '' }}" required>
+        <select id="category" name="category" required>
+            <option value="">Select a category</option>
+            {% for category in categories %}
+                <option value="{{ category }}" {% if item and item.category == category %}selected{% endif %}>
+                    {{ category }}
+                </option>
+            {% endfor %}
+        </select>
 
         <label for="purchase_date">Purchase Date</label>
-        <input id="purchase_date" name="purchase_date" type="date" value="{{ item.purchase_date if item else '' }}" required>
+        <input id="purchase_date" name="purchase_date" type="date" max="{{ today_date }}" value="{{ item.purchase_date if item else '' }}" required>
 
         <label for="warranty_end_date">Warranty End Date</label>
         <input id="warranty_end_date" name="warranty_end_date" type="date" value="{{ item.warranty_end_date if item else '' }}" required>
 
         <label for="maintenance_date">Next Maintenance Date</label>
-        <input id="maintenance_date" name="maintenance_date" type="date" value="{{ item.maintenance_date if item else '' }}">
+        <input id="maintenance_date" name="maintenance_date" type="date" min="{{ today_date }}" max="{{ maintenance_max_date }}" value="{{ item.maintenance_date if item else '' }}">
 
         <label for="notes">Notes</label>
         <textarea id="notes" name="notes" rows="4">{{ item.notes if item else '' }}</textarea>
@@ -28,4 +35,81 @@
         </div>
     </form>
 </section>
+
+<script>
+    const warrantyLimits = {{ warranty_limits|tojson }};
+    const categoryInput = document.getElementById("category");
+    const purchaseDateInput = document.getElementById("purchase_date");
+    const warrantyEndDateInput = document.getElementById("warranty_end_date");
+    const maintenanceDateInput = document.getElementById("maintenance_date");
+
+    function addYears(dateValue, years) {
+        const parts = dateValue.split("-").map(Number);
+        const year = parts[0] + years;
+        const month = parts[1];
+        let day = parts[2];
+        const lastDay = new Date(year, month, 0).getDate();
+        if (day > lastDay) {
+            day = lastDay;
+        }
+        return [
+            year,
+            String(month).padStart(2, "0"),
+            String(day).padStart(2, "0"),
+        ].join("-");
+    }
+
+    function updateWarrantyLimit() {
+        const category = categoryInput.value;
+        const purchaseDate = purchaseDateInput.value;
+        const limitYears = warrantyLimits[category];
+
+        if (!purchaseDate || !limitYears) {
+            warrantyEndDateInput.removeAttribute("max");
+            return;
+        }
+
+        const maxDate = addYears(purchaseDate, limitYears);
+        warrantyEndDateInput.max = maxDate;
+        if (warrantyEndDateInput.value && warrantyEndDateInput.value > maxDate) {
+            warrantyEndDateInput.value = maxDate;
+        }
+    }
+
+    function earlierDate(firstDate, secondDate) {
+        if (!firstDate) {
+            return secondDate;
+        }
+        if (!secondDate) {
+            return firstDate;
+        }
+        return firstDate < secondDate ? firstDate : secondDate;
+    }
+
+    function updateMaintenanceLimit() {
+        const category = categoryInput.value;
+        const purchaseDate = purchaseDateInput.value;
+        const limitYears = warrantyLimits[category];
+        const generalMaxDate = "{{ maintenance_max_date }}";
+        let maxDate = generalMaxDate;
+
+        if (purchaseDate && limitYears) {
+            maxDate = earlierDate(addYears(purchaseDate, limitYears), generalMaxDate);
+        }
+
+        maintenanceDateInput.max = maxDate;
+        if (maintenanceDateInput.value && maintenanceDateInput.value > maxDate) {
+            maintenanceDateInput.value = maxDate;
+        }
+    }
+
+    function updateDateLimits() {
+        updateWarrantyLimit();
+        updateMaintenanceLimit();
+    }
+
+    categoryInput.addEventListener("change", updateDateLimits);
+    purchaseDateInput.addEventListener("change", updateDateLimits);
+    updateDateLimits();
+</script>
 {% endblock %}

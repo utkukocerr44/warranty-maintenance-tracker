@@ -5,7 +5,17 @@ from functools import wraps
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from logic import calculate_item_status, parse_date
+from logic import (
+    ITEM_CATEGORIES,
+    STATUS_CHOICES,
+    MAX_MAINTENANCE_YEARS,
+    add_years,
+    calculate_item_status,
+    is_valid_category,
+    status_matches,
+    validate_item_dates,
+    validate_password,
+)
 
 
 DATABASE = os.path.join(os.path.dirname(__file__), "instance", "warranty_tracker.db")
@@ -38,26 +48,49 @@ def create_app():
         if g.user is None:
             return render_template("index.html")
 
+        filters = collect_dashboard_filters()
+        conditions = ["user_id = ?"]
+        parameters = [g.user["id"]]
+
+        if filters["query"]:
+            conditions.append("(LOWER(name) LIKE ? OR LOWER(notes) LIKE ?)")
+            search_value = f"%{filters['query'].lower()}%"
+            parameters.extend([search_value, search_value])
+
+        if filters["category"]:
+            conditions.append("category = ?")
+            parameters.append(filters["category"])
+
         db = get_db()
         items = db.execute(
-            """
+            f"""
             SELECT id, name, category, purchase_date, warranty_end_date,
                    maintenance_date, notes
             FROM items
-            WHERE user_id = ?
+            WHERE {' AND '.join(conditions)}
             ORDER BY warranty_end_date ASC
             """,
-            (g.user["id"],),
+            parameters,
         ).fetchall()
 
         enriched_items = []
         counts = {"Active": 0, "Expiring Soon": 0, "Expired": 0, "Maintenance Due": 0}
         for item in items:
             status = calculate_item_status(item["warranty_end_date"], item["maintenance_date"])
+            if not status_matches(item["warranty_end_date"], item["maintenance_date"], filters["status"]):
+                continue
             counts[status] = counts.get(status, 0) + 1
             enriched_items.append({**dict(item), "status": status})
 
-        return render_template("dashboard.html", items=enriched_items, counts=counts)
+        return render_template(
+            "dashboard.html",
+            items=enriched_items,
+            counts=counts,
+            categories=ITEM_CATEGORIES,
+            statuses=STATUS_CHOICES,
+            filters=filters,
+            has_filters=any(filters.values()),
+        )
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -67,6 +100,8 @@ def create_app():
 
             if not username or not password:
                 flash("Username and password are required.")
+            elif validate_password(password):
+                flash(validate_password(password))
             else:
                 db = get_db()
                 try:
@@ -137,7 +172,15 @@ def create_app():
                 flash("Item added.")
                 return redirect(url_for("index"))
 
-        return render_template("item_form.html", item=None, action="Add")
+        return render_template(
+            "item_form.html",
+            item=None,
+            action="Add",
+            categories=ITEM_CATEGORIES,
+            warranty_limits=get_warranty_limits(),
+            today_date=current_date_value(),
+            maintenance_max_date=maintenance_max_date_value(),
+        )
 
     @app.route("/items/<int:item_id>/edit", methods=["GET", "POST"])
     @login_required
@@ -176,7 +219,15 @@ def create_app():
                 flash("Item updated.")
                 return redirect(url_for("index"))
 
-        return render_template("item_form.html", item=item, action="Edit")
+        return render_template(
+            "item_form.html",
+            item=item,
+            action="Edit",
+            categories=ITEM_CATEGORIES,
+            warranty_limits=get_warranty_limits(),
+            today_date=current_date_value(),
+            maintenance_max_date=maintenance_max_date_value(),
+        )
 
     @app.route("/items/<int:item_id>/delete", methods=["POST"])
     @login_required
@@ -231,18 +282,49 @@ def collect_item_form():
     }
 
 
+def collect_dashboard_filters():
+    category = request.args.get("category", "").strip()
+    status = request.args.get("status", "").strip()
+    if category and category not in ITEM_CATEGORIES:
+        category = ""
+    if status and status not in STATUS_CHOICES:
+        status = ""
+    return {
+        "query": request.args.get("q", "").strip(),
+        "category": category,
+        "status": status,
+    }
+
+
 def validate_item_form(form_data):
     if not form_data["name"]:
         return "Item name is required."
-    if not form_data["category"]:
-        return "Category is required."
-    if not parse_date(form_data["purchase_date"]):
-        return "Purchase date must be a valid date."
-    if not parse_date(form_data["warranty_end_date"]):
-        return "Warranty end date must be a valid date."
-    if form_data["maintenance_date"] and not parse_date(form_data["maintenance_date"]):
-        return "Maintenance date must be a valid date."
-    return None
+    if not is_valid_category(form_data["category"]):
+        return "Choose a valid category."
+    return validate_item_dates(
+        form_data["purchase_date"],
+        form_data["warranty_end_date"],
+        form_data["maintenance_date"],
+        category=form_data["category"],
+    )
+
+
+def current_date_value():
+    from datetime import date
+
+    return date.today().isoformat()
+
+
+def maintenance_max_date_value():
+    from datetime import date
+
+    return add_years(date.today(), MAX_MAINTENANCE_YEARS).isoformat()
+
+
+def get_warranty_limits():
+    from logic import MAX_WARRANTY_YEARS_BY_CATEGORY
+
+    return MAX_WARRANTY_YEARS_BY_CATEGORY
 
 
 def get_user_item(item_id):
