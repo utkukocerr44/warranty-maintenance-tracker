@@ -64,6 +64,7 @@ Acceptance criteria:
 - Each item shows warranty and maintenance dates.
 - Each item displays one status: Active, Expiring Soon, Expired, or Maintenance Due.
 - Dashboard summary counts match the user's items.
+- The user can search and filter dashboard items by category and status.
 
 ## Done
 
